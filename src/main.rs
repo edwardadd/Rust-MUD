@@ -1,56 +1,79 @@
-use std::io::Read;
-use std::net::{TcpListener, TcpStream};
+use std::net::TcpListener;
+use std::sync::mpsc::Sender;
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
-use std::sync::{Arc, Mutex};
 
-struct Client {
-    stream: TcpStream,
-    buffer: [u8; 1024],
-    offset: usize,
+mod client;
+use crate::client::Client;
+
+mod events;
+use crate::events::Event;
+
+mod game;
+use crate::game::Game;
+
+mod player;
+
+static SERVER_ADDRESS: &str = "127.0.0.1:8080";
+
+fn init_process_thread(clients: Arc<Mutex<Vec<Client>>>) -> thread::JoinHandle<()> {
+    thread::spawn(move || loop {
+        // Park the thread if there are no clients
+        if clients.lock().unwrap().len() == 0 {
+            // TODO: Check if there is a race condition here due to thread unparking when clients are added
+            println!("Parking process_thread - no clients");
+            thread::park();
+            continue;
+        }
+
+        let mut clients = clients.lock().unwrap();
+
+        for client in clients.iter_mut() {
+            client.process();
+        }
+    })
 }
 
-impl Client {
-    fn process(&mut self) {
-        loop {
-            let offset = self.offset;
+fn listen_for_connections(
+    clients: Arc<Mutex<Vec<Client>>>,
+    process_thread: thread::JoinHandle<()>,
+    sender: Sender<Event>,
+) {
+    thread::spawn(move || loop {
+        let listener = TcpListener::bind(SERVER_ADDRESS).unwrap();
 
-            match self.stream.read(&mut self.buffer) {
-                Ok(size) => self.offset += size,
-                Err(e) => println!("Failed to read from stream, {}", e),
-            }
+        let mut id = 0; // Note: This is not a player but just  a client id
 
-            for i in offset..self.offset {
-                if self.buffer[i] == b'\n' {
-                    // complete command and process it
-                    let command = String::from_utf8_lossy(&self.buffer[0..i]);
-                    println!("{}", command);
+        println!("Server listening on {SERVER_ADDRESS}");
+
+        for stream in listener.incoming() {
+            match stream {
+                Ok(stream) => {
+                    println!("New client connected!");
+                    id += 1;
+                    clients
+                        .lock()
+                        .unwrap()
+                        .push(Client::new(id, stream, sender.clone()));
+
+                    // Unpark the thread if it isn't already
+                    process_thread.thread().unpark();
+                    println!("Unparking process_thread - clients available");
                 }
+                Err(e) => println!("couldn't get client: {e:?}"),
             }
         }
-    }
+    });
 }
 
 fn main() {
     let clients: Arc<Mutex<Vec<Client>>> = Arc::new(Mutex::new(Vec::new()));
 
-    let _clients = clients.clone();
-    let _ = thread::spawn(move || loop {
-        let mut citer = _clients.lock().unwrap();
-        for client in citer.iter_mut() {
-            client.process();
-        }
-    });
+    let (sender, receiver) = mpsc::channel();
 
-    let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+    let process_thread = init_process_thread(clients.clone());
+    listen_for_connections(clients, process_thread, sender);
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => clients.lock().unwrap().push(Client {
-                stream: stream,
-                buffer: [0; 1024],
-                offset: 0,
-            }),
-            Err(e) => println!("couldn't get client: {e:?}"),
-        }
-    }
+    let mut game = Game::new(receiver);
+    game.run();
 }
