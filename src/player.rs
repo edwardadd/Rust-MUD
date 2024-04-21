@@ -13,3 +13,16 @@ impl Player {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_player() {
+        let player = Player::new(1, 1, "Test".to_string());
+        assert_eq!(player.client_id, 1);
+        assert_eq!(player.id, 1);
+        assert_eq!(player.name, "Test");
+    }
+}
