@@ -1,3 +1,4 @@
+use crate::commands::Command;
 use crate::events::Event;
 use std::io::Read;
 use std::net::TcpStream;
@@ -6,6 +7,7 @@ use std::sync::mpsc::Sender;
 pub struct Client {
     id: u32,
     stream: TcpStream,
+    sender: Sender<Event>,
     buffer: [u8; 1024],
     offset: usize,
 }
@@ -15,6 +17,7 @@ impl Client {
         Client {
             id,
             stream,
+            sender,
             buffer: [0; 1024],
             offset: 0,
         }
@@ -39,17 +42,43 @@ impl Client {
             );
         }
 
-        // Process previous input with new input and send new commands to game
+        let mut last_offset = 0;
 
-        // for i in offset..self.offset {
-        //     if self.buffer[i] == b'\n' || self.buffer[i] == b'\0' {
-        //         self.buffer[0] = b'\0';
-        //         self.offset = 0;
+        for i in 0..bytes_read {
+            if buffer[i] == b'\n' || buffer[i] == b'\0' {
+                self.buffer[0] = b'\0';
+                self.offset = 0;
 
-        //         // complete command and process it
-        //         let command = String::from_utf8_lossy(&self.buffer[0..i]);
-        //         println!("{}", command);
-        //     }
-        // }
+                // complete command and process it
+                let command_string = String::from_utf8_lossy(&buffer[last_offset..i]);
+
+                last_offset = i;
+
+                // println!("{}", command_string);
+                let command = self.parse_input(&command_string);
+                match self.sender.send(command) {
+                    Ok(_) => (),
+                    Err(e) => println!("Failed to send command: {}", e),
+                }
+            }
+        }
+    }
+
+    fn parse_input(&mut self, input: &str) -> Event {
+        let tokens: Vec<_> = input.split_ascii_whitespace().collect();
+
+        match tokens[0] {
+            "look" => Event::NewCommand(Command::Look { who: self.id }),
+            "move" => Event::NewCommand(Command::Move {
+                who: self.id,
+                x: tokens[1].parse().unwrap(),
+                y: tokens[2].parse().unwrap(),
+            }),
+            "quit" => Event::Quit,
+            _ => Event::NewCommand(Command::Say {
+                who: self.id,
+                what: input.to_string(),
+            }),
+        }
     }
 }

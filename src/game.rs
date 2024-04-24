@@ -1,4 +1,4 @@
-use crate::events::Event;
+use crate::{commands::Command, events::Event};
 use std::sync::mpsc;
 
 pub struct Game {
@@ -18,10 +18,20 @@ impl Game {
                     println!("New client connected!");
                 }
                 Ok(Event::NewCommand(command)) => {
-                    println!("New command: {}", command);
+                    println!("New command: {:?}", command);
+                    self.process_command(command);
                 }
                 Err(mpsc::RecvError) => break,
             }
+        }
+    }
+
+    fn process_command(&mut self, command: Command) {
+        match command {
+            Command::Say { who, what } => self.broad_cast(who, what),
+            Command::Look { who } => todo!(),
+            Command::Move { who, x, y } => todo!(),
+            Command::Quit { who } => todo!(),
         }
     }
 

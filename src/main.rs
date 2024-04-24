@@ -14,7 +14,9 @@ use crate::game::Game;
 
 mod player;
 mod room;
-use crate::room::Room;
+// use crate::room::Room;
+
+mod commands;
 
 static SERVER_ADDRESS: &str = "127.0.0.1:8080";
 
