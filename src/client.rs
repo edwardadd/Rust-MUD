@@ -1,11 +1,11 @@
 use crate::commands::Command;
 use crate::events::Event;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::mpsc::Sender;
 
 pub struct Client {
-    id: u32,
+    pub id: u32,
     stream: TcpStream,
     sender: Sender<Event>,
     buffer: [u8; 1024],
@@ -21,6 +21,10 @@ impl Client {
             buffer: [0; 1024],
             offset: 0,
         }
+    }
+
+    pub fn send(&mut self, message: String) {
+        let _ = self.stream.write(message.as_bytes());
     }
 
     pub fn process(&mut self) {
@@ -56,29 +60,53 @@ impl Client {
 
                 // println!("{}", command_string);
                 let command = self.parse_input(&command_string);
-                match self.sender.send(command) {
-                    Ok(_) => (),
-                    Err(e) => println!("Failed to send command: {}", e),
+                if let Some(command) = command {
+                    match self.sender.send(command) {
+                        Ok(_) => (),
+                        Err(e) => println!("Failed to send command: {}", e),
+                    }
+                } else {
+                    println!("Invalid command: {}", command_string);
                 }
             }
         }
     }
 
-    fn parse_input(&mut self, input: &str) -> Event {
+    fn parse_input(&mut self, input: &str) -> Option<Event> {
         let tokens: Vec<_> = input.split_ascii_whitespace().collect();
 
-        match tokens[0] {
-            "look" => Event::NewCommand(Command::Look { who: self.id }),
-            "move" => Event::NewCommand(Command::Move {
-                who: self.id,
-                x: tokens[1].parse().unwrap(),
-                y: tokens[2].parse().unwrap(),
-            }),
-            "quit" => Event::Quit,
-            _ => Event::NewCommand(Command::Say {
-                who: self.id,
-                what: input.to_string(),
-            }),
+        println!("{:?}", tokens);
+
+        if tokens.len() == 0 {
+            return None;
         }
+
+        if tokens[0].is_empty() {
+            return None;
+        }
+
+        match tokens[0] {
+            "look" => return Some(Event::NewCommand(Command::Look { who: self.id })),
+            "move" => {
+                if tokens.len() != 3 {
+                    return None;
+                }
+
+                return Some(Event::NewCommand(Command::Move {
+                    who: self.id,
+                    x: tokens[1].parse().unwrap(),
+                    y: tokens[2].parse().unwrap(),
+                }));
+            }
+            "quit" => Event::Quit,
+            _ => {
+                return Some(Event::NewCommand(Command::Say {
+                    who: self.id,
+                    what: input.to_string(),
+                }))
+            }
+        };
+
+        return None;
     }
 }

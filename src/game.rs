@@ -1,13 +1,17 @@
-use crate::{commands::Command, events::Event};
-use std::sync::mpsc;
+use crate::{client::Client, commands::Command, events::Event};
+use std::{
+    borrow::Borrow,
+    sync::{mpsc, Arc, Mutex},
+};
 
 pub struct Game {
+    clients: Arc<Mutex<Vec<Client>>>,
     events: mpsc::Receiver<Event>,
 }
 
 impl Game {
-    pub fn new(events: mpsc::Receiver<Event>) -> Self {
-        Game { events }
+    pub fn new(clients: Arc<Mutex<Vec<Client>>>, events: mpsc::Receiver<Event>) -> Self {
+        Game { clients, events }
     }
 
     pub fn run(&mut self) {
@@ -29,17 +33,35 @@ impl Game {
     fn process_command(&mut self, command: Command) {
         match command {
             Command::Say { who, what } => self.broad_cast(who, what),
-            Command::Look { who } => todo!(),
-            Command::Move { who, x, y } => todo!(),
-            Command::Quit { who } => todo!(),
+            Command::Look { who } => self.broad_cast(who, "looking!".to_string()),
+            Command::Move { who, x, y } => self.broad_cast(who, "moving!".to_string()),
+            Command::Quit { who } => self.broad_cast(who, "quiting!".to_string()),
         }
     }
 
     pub fn broad_cast(&mut self, from: u32, message: String) {
         // Send the message to each clients TcpStream
+        let mut clients = self.clients.lock().unwrap();
+        let iter = clients.iter_mut();
+        for client in iter {
+            if client.id == from {
+                continue;
+            }
+
+            client.send(message.clone());
+        }
     }
 
-    pub fn send(&mut self, from: u32, to: u32, message: String) {}
+    pub fn send(&mut self, from: u32, to: u32, message: String) {
+        let mut clients = self.clients.lock().unwrap();
+        // let fromClient = clients
+        //     .iter()
+        //     .find(|&client| client.id == from)
+        //     .unwrap()
+        //     .clone();
+        let to_client = clients.iter_mut().find(|client| client.id == to).unwrap();
+        to_client.send(message);
+    }
 }
 
 #[cfg(test)]
@@ -48,7 +70,8 @@ mod tests {
 
     #[test]
     fn new_game() {
+        let clients = Arc::new(Mutex::new(Vec::new()));
         let events = mpsc::channel();
-        let game = Game::new(events.1);
+        let game = Game::new(clients, events.1);
     }
 }

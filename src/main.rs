@@ -76,8 +76,8 @@ fn main() {
     let (sender, receiver) = mpsc::channel();
 
     let process_thread = init_process_thread(clients.clone());
-    listen_for_connections(clients, process_thread, sender);
+    listen_for_connections(clients.clone(), process_thread, sender);
 
-    let mut game = Game::new(receiver);
+    let mut game = Game::new(clients, receiver);
     game.run();
 }
