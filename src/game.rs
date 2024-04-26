@@ -1,8 +1,5 @@
 use crate::{client::Client, commands::Command, events::Event};
-use std::{
-    borrow::Borrow,
-    sync::{mpsc, Arc, Mutex},
-};
+use std::sync::{mpsc, Arc, Mutex};
 
 pub struct Game {
     clients: Arc<Mutex<Vec<Client>>>,
@@ -40,6 +37,9 @@ impl Game {
     }
 
     pub fn broad_cast(&mut self, from: u32, message: String) {
+        let mut message = message;
+        message.push('\n');
+
         // Send the message to each clients TcpStream
         let mut clients = self.clients.lock().unwrap();
         let iter = clients.iter_mut();
@@ -48,7 +48,7 @@ impl Game {
                 continue;
             }
 
-            client.send(message.clone());
+            client.send(&message);
         }
     }
 
@@ -60,7 +60,7 @@ impl Game {
         //     .unwrap()
         //     .clone();
         let to_client = clients.iter_mut().find(|client| client.id == to).unwrap();
-        to_client.send(message);
+        to_client.send(&message);
     }
 }
 
