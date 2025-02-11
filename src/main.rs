@@ -49,12 +49,10 @@ fn listen_for_connections(
     clients: Arc<Mutex<Vec<Client>>>,
     process_thread: thread::JoinHandle<()>,
     sender: Sender<Event>,
-) {
-    thread::spawn(move || loop {
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
         let listener = TcpListener::bind(SERVER_ADDRESS).unwrap();
-
-        let mut id = 0; // Note: This is not a player but just  a client id
-
+        let mut id = 0;
         println!("Server listening on {SERVER_ADDRESS}");
 
         for stream in listener.incoming() {
@@ -69,25 +67,24 @@ fn listen_for_connections(
                         .lock()
                         .unwrap()
                         .push(Client::new(id, stream, sender.clone()));
-
-                    // Unpark the thread if it isn't already
-                    // process_thread.thread().unpark();
-                    // println!("Unparking process_thread - clients available");
                 }
                 Err(e) => println!("couldn't get client: {e:?}"),
             }
         }
-    });
+    })
 }
 
 fn main() {
     let clients: Arc<Mutex<Vec<Client>>> = Arc::new(Mutex::new(Vec::new()));
-
     let (sender, receiver) = mpsc::channel();
 
     let process_thread = init_process_thread(clients.clone());
-    listen_for_connections(clients.clone(), process_thread, sender);
+    let listener_thread = listen_for_connections(clients.clone(), process_thread.clone(), sender);
 
     let mut game = Game::new(clients, receiver);
     game.run();
+
+    // Clean up threads
+    listener_thread.join().unwrap();
+    process_thread.join().unwrap();
 }
