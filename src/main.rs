@@ -5,6 +5,7 @@ use std::thread;
 use std::time::Duration;
 
 mod client;
+use crate::player::Player;
 use crate::client::Client;
 
 mod events;
