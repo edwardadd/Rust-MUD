@@ -42,10 +42,12 @@ impl Player {
             [username, &hashed],
         ) {
             Ok(_) => {
+                println!("[ACCOUNT] New account created for user: {}", username);
                 println!("[DB] Successfully registered user: {}", username);
                 Ok(true)
             },
             Err(e) => {
+                println!("[ACCOUNT] Failed to create account for user: {}", username);
                 println!("[DB] Failed to register user {}: {:?}", username, e);
                 Ok(false)
             },
@@ -60,8 +62,15 @@ impl Player {
         
         if let Some(row) = rows.next()? {
             let hash: String = row.get(0)?;
-            Ok(verify(password.as_bytes(), &hash).unwrap_or(false))
+            let is_valid = verify(password.as_bytes(), &hash).unwrap_or(false);
+            if is_valid {
+                println!("[AUTH] User {} successfully authenticated", username);
+            } else {
+                println!("[AUTH] Failed authentication attempt for user {}", username);
+            }
+            Ok(is_valid)
         } else {
+            println!("[AUTH] Authentication attempt for unknown user: {}", username);
             Ok(false)
         }
     }
