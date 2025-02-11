@@ -38,12 +38,8 @@ impl Client {
         }
 
         if bytes_read > 0 {
-            println!(
-                "Client: {}, Buffer: {}, bytes: {}",
-                self.id,
-                String::from_utf8_lossy(&buffer),
-                bytes_read
-            );
+            let message = String::from_utf8_lossy(&buffer[..bytes_read]);
+            println!("Received from client {}: {}", self.id, message);
         }
 
         let mut last_offset = 0;
