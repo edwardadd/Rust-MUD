@@ -47,7 +47,6 @@ fn init_process_thread(clients: Arc<Mutex<Vec<Client>>>) -> thread::JoinHandle<(
 
 fn listen_for_connections(
     clients: Arc<Mutex<Vec<Client>>>,
-    process_thread: thread::JoinHandle<()>,
     sender: Sender<Event>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
@@ -79,7 +78,7 @@ fn main() {
     let (sender, receiver) = mpsc::channel();
 
     let process_thread = init_process_thread(clients.clone());
-    let listener_thread = listen_for_connections(clients.clone(), process_thread.clone(), sender);
+    let listener_thread = listen_for_connections(clients.clone(), sender);
 
     let mut game = Game::new(clients, receiver);
     game.run();
