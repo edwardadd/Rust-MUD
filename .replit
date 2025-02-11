@@ -10,5 +10,9 @@ channel = "stable-23_11"
 requiredFiles = [".replit"]
 
 [[ports]]
+localPort = 8000
+externalPort = 80
+
+[[ports]]
 localPort = 8080
 externalPort = 3000
