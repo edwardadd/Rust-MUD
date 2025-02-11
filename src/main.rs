@@ -20,7 +20,7 @@ mod room;
 
 mod commands;
 
-static SERVER_ADDRESS: &str = "0.0.0.0:8080";
+static SERVER_ADDRESS: &str = "0.0.0.0:8000";
 
 fn init_process_thread(clients: Arc<Mutex<Vec<Client>>>) -> thread::JoinHandle<()> {
     thread::spawn(move || loop {
