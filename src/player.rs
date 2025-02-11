@@ -33,6 +33,7 @@ impl Player {
     }
 
     pub fn register(username: &str, password: &str) -> Result<bool> {
+        println!("[DB] Attempting to register new user: {}", username);
         let conn = Connection::open("players.db")?;
         let hashed = hash(password.as_bytes(), DEFAULT_COST).unwrap();
         
@@ -40,12 +41,19 @@ impl Player {
             "INSERT INTO players (name, password_hash) VALUES (?1, ?2)",
             [username, &hashed],
         ) {
-            Ok(_) => Ok(true),
-            Err(_) => Ok(false),
+            Ok(_) => {
+                println!("[DB] Successfully registered user: {}", username);
+                Ok(true)
+            },
+            Err(e) => {
+                println!("[DB] Failed to register user {}: {:?}", username, e);
+                Ok(false)
+            },
         }
     }
 
     pub fn authenticate(username: &str, password: &str) -> Result<bool> {
+        println!("[DB] Authenticating user: {}", username);
         let conn = Connection::open("players.db")?;
         let mut stmt = conn.prepare("SELECT password_hash FROM players WHERE name = ?")?;
         let mut rows = stmt.query([username])?;

@@ -37,25 +37,32 @@ impl Game {
             Command::Move { who, x: _, y: _ } => self.broad_cast(who, "moving!".to_string()),
             Command::Quit { who } => self.broad_cast(who, "quiting!".to_string()),
             Command::Login { who, username, password } => {
+                println!("Authentication attempt for user: {}", username);
                 match Player::authenticate(&username, &password) {
                     Ok(true) => {
                         {
                             let mut clients = self.clients.lock().unwrap();
                             if let Some(client) = clients.iter_mut().find(|c| c.id == who) {
                                 client.set_authenticated(true);
-                                println!("Player {} logged in successfully", username);
+                                println!("[AUTH] Player {} (client id: {}) logged in successfully", username, who);
                             }
                         }
                         self.send(0, who, "Login successful!\n".to_string());
                     },
                     Ok(false) => {
+                        println!("[AUTH] Failed login attempt for user: {}", username);
                         if Player::register(&username, &password).unwrap_or(false) {
+                            println!("[AUTH] New user registered: {}", username);
                             self.send(0, who, "Registered and logged in!\n".to_string())
                         } else {
+                            println!("[AUTH] Invalid credentials for user: {}", username);
                             self.send(0, who, "Invalid credentials!\n".to_string())
                         }
                     },
-                    Err(_) => self.send(0, who, "Login error occurred!\n".to_string()),
+                    Err(e) => {
+                        println!("[AUTH] Error during authentication for {}: {:?}", username, e);
+                        self.send(0, who, "Login error occurred!\n".to_string())
+                    },
                 }
             },
         }
