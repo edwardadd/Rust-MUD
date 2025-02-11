@@ -74,6 +74,7 @@ fn listen_for_connections(
 }
 
 fn main() {
+    Player::init_db().expect("Failed to initialize database");
     let clients: Arc<Mutex<Vec<Client>>> = Arc::new(Mutex::new(Vec::new()));
     let (sender, receiver) = mpsc::channel();
 

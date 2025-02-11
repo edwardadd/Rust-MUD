@@ -33,6 +33,19 @@ impl Game {
             Command::Look { who } => self.broad_cast(who, "looking!".to_string()),
             Command::Move { who, x, y } => self.broad_cast(who, "moving!".to_string()),
             Command::Quit { who } => self.broad_cast(who, "quiting!".to_string()),
+            Command::Login { who, username, password } => {
+                match Player::authenticate(&username, &password) {
+                    Ok(true) => self.send(0, who, "Login successful!\n".to_string()),
+                    Ok(false) => {
+                        if Player::register(&username, &password).unwrap_or(false) {
+                            self.send(0, who, "Registered and logged in!\n".to_string())
+                        } else {
+                            self.send(0, who, "Invalid credentials!\n".to_string())
+                        }
+                    },
+                    Err(_) => self.send(0, who, "Login error occurred!\n".to_string()),
+                }
+            },
         }
     }
 
