@@ -29,7 +29,10 @@ impl Game {
 
     fn process_command(&mut self, command: Command) {
         match command {
-            Command::Say { who, what } => self.broad_cast(who, what),
+            Command::Say { who, what } => {
+                println!("Player {} says: {}", who, what);
+                self.broad_cast(who, what)
+            },
             Command::Look { who } => self.broad_cast(who, "looking!".to_string()),
             Command::Move { who, x: _, y: _ } => self.broad_cast(who, "moving!".to_string()),
             Command::Quit { who } => self.broad_cast(who, "quiting!".to_string()),
@@ -40,6 +43,7 @@ impl Game {
                             let mut clients = self.clients.lock().unwrap();
                             if let Some(client) = clients.iter_mut().find(|c| c.id == who) {
                                 client.set_authenticated(true);
+                                println!("Player {} logged in successfully", username);
                             }
                         }
                         self.send(0, who, "Login successful!\n".to_string());
