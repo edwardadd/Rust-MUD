@@ -31,16 +31,18 @@ impl Game {
         match command {
             Command::Say { who, what } => self.broad_cast(who, what),
             Command::Look { who } => self.broad_cast(who, "looking!".to_string()),
-            Command::Move { who, x, y } => self.broad_cast(who, "moving!".to_string()),
+            Command::Move { who, x: _, y: _ } => self.broad_cast(who, "moving!".to_string()),
             Command::Quit { who } => self.broad_cast(who, "quiting!".to_string()),
             Command::Login { who, username, password } => {
                 match Player::authenticate(&username, &password) {
                     Ok(true) => {
-                        let mut clients = self.clients.lock().unwrap();
-                        if let Some(client) = clients.iter_mut().find(|c| c.id == who) {
-                            client.set_authenticated(true);
-                            self.send(0, who, "Login successful!\n".to_string());
+                        {
+                            let mut clients = self.clients.lock().unwrap();
+                            if let Some(client) = clients.iter_mut().find(|c| c.id == who) {
+                                client.set_authenticated(true);
+                            }
                         }
+                        self.send(0, who, "Login successful!\n".to_string());
                     },
                     Ok(false) => {
                         if Player::register(&username, &password).unwrap_or(false) {
