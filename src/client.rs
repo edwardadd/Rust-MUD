@@ -6,6 +6,9 @@ use std::sync::mpsc::Sender;
 
 pub struct Client {
     pub id: u32,
+
+    authenticated: bool,
+
     stream: TcpStream,
     sender: Sender<Event>,
     buffer: [u8; 1024],
@@ -19,7 +22,17 @@ impl Client {
             stream,
             sender,
             buffer: [0; 1024],
+
+    pub fn is_authenticated(&self) -> bool {
+        self.authenticated
+    }
+
+    pub fn set_authenticated(&mut self, status: bool) {
+        self.authenticated = status;
+    }
+
             offset: 0,
+            authenticated: false,
         }
     }
 
@@ -40,6 +53,12 @@ impl Client {
         if bytes_read > 0 {
             let message = String::from_utf8_lossy(&buffer[..bytes_read]);
             println!("Received from client {}: {}", self.id, message);
+            
+            // Only process login commands if not authenticated
+            if !self.is_authenticated() && !message.starts_with("login") {
+                self.send(&"Please login first using: login <username> <password>\n".to_string());
+                return;
+            }
         }
 
         let mut last_offset = 0;
