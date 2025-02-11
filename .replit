@@ -12,4 +12,3 @@ requiredFiles = [".replit"]
 [[ports]]
 localPort = 8080
 externalPort = 3000
-exposeLocalhost = true
