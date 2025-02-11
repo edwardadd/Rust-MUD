@@ -34,7 +34,7 @@ impl Client {
 
         match self.stream.read(&mut buffer) {
             Ok(size) => bytes_read = size,
-            Err(e) => {} /*println!("Failed to read from stream, {}", e)*/
+            Err(_e) => {} /*println!("Failed to read from stream, {}", e)*/
         }
 
         if bytes_read > 0 {

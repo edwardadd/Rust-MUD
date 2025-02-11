@@ -15,7 +15,7 @@ impl Game {
         loop {
             match self.events.recv() {
                 Ok(Event::Quit) => break,
-                Ok(Event::NewClient(client)) => {
+                Ok(Event::NewClient(_client)) => {
                     println!("New client connected!");
                 }
                 Ok(Event::NewCommand(command)) => {
@@ -65,7 +65,7 @@ impl Game {
         }
     }
 
-    pub fn send(&mut self, from: u32, to: u32, message: String) {
+    pub fn send(&mut self, _from: u32, to: u32, message: String) {
         let mut clients = self.clients.lock().unwrap();
         // let fromClient = clients
         //     .iter()
