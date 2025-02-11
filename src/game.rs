@@ -1,4 +1,4 @@
-use crate::{client::Client, commands::Command, events::Event};
+use crate::{client::Client, commands::Command, events::Event, player::Player};
 use std::sync::{mpsc, Arc, Mutex};
 
 pub struct Game {
